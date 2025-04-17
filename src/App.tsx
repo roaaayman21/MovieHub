@@ -9,7 +9,8 @@ import ListsPage from './pages/ListsPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    // Change BrowserRouter to handle the base URL
+    <BrowserRouter basename="/MovieHub">
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
@@ -23,6 +24,8 @@ function App() {
 }
 
 export default App
+
+
 
 
 
