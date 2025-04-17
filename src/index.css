@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Add smooth transitions for theme changes */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Add these styles to handle mobile menu behavior */
+body.menu-open {
+  overflow: hidden;
+}
+
+/* Ensure smooth transitions for theme changes */
+.nav-link {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 640px) {
+  .nav-link {
+    padding: 0.75rem 1rem;
+  }
+}
+
+
