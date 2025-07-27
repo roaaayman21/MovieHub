@@ -1,21 +1,43 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { searchMovies,  imageUrls } from '../services/tmdb'
+import { searchMovies, imageUrls } from '../services/tmdb'
 import { useThemeStore } from '../store/themeStore'
+import { useMovieDataStore } from '../store/movieDataStore'
 import { Link } from 'react-router-dom'
 import MovieFilters from '../components/MovieFilters'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 
 function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('title')
   const [selectedGenres, setSelectedGenres] = useState<number[]>([])
   const { isDarkMode } = useThemeStore()
+  const { addToSearchHistory, addToRecentlyViewed, getPopularSearches } = useMovieDataStore()
 
+  // Use simple React Query hook
   const { data, isLoading } = useQuery({
     queryKey: ['search', searchQuery],
     queryFn: () => searchMovies(searchQuery),
     enabled: searchQuery.length > 0,
+    staleTime: 1000 * 60 * 5,
   })
+
+  const popularSearches = getPopularSearches()
+
+  // Track search queries
+  useEffect(() => {
+    if (searchQuery.trim() && searchQuery.length > 2) {
+      const timeoutId = setTimeout(() => {
+        addToSearchHistory(searchQuery)
+      }, 1000) // Debounce search history tracking
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchQuery, addToSearchHistory])
+
+  const handleMovieClick = (movieId: number) => {
+    addToRecentlyViewed(movieId)
+  }
 
   const filteredAndSortedMovies = useMemo(() => {
     if (!data?.results) return []
@@ -55,57 +77,95 @@ function SearchPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
-      <MovieFilters
-        sortBy={sortBy}
-        selectedGenres={selectedGenres}
-        onSortChange={setSortBy}
-        onSearchChange={setSearchQuery}
-        onGenreChange={handleGenreChange}
-        isDarkMode={isDarkMode}
-      />
+      {/* Page Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">
+          🔍 Search Movies
+        </h1>
+        <p className="text-lg opacity-75 max-w-2xl mx-auto">
+          Discover your next favorite movie from millions of titles
+        </p>
+      </div>
+
+      {/* Search Filters */}
+      <div className="mb-8">
+        <MovieFilters
+          sortBy={sortBy}
+          selectedGenres={selectedGenres}
+          onSortChange={setSortBy}
+          onSearchChange={setSearchQuery}
+          onGenreChange={handleGenreChange}
+          isDarkMode={isDarkMode}
+        />
+      </div>
+
+      {/* Popular Searches */}
+      {!searchQuery && popularSearches.length > 0 && (
+        <div className={`mb-8 p-6 rounded-2xl border ${
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
+          <h3 className="text-lg font-bold mb-4">🔥 Popular Searches</h3>
+          <div className="flex flex-wrap gap-2">
+            {popularSearches.map((search, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setSearchQuery(search)}
+                className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                }`}
+              >
+                {search}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="text-center py-12">
-          <div className="animate-bounce text-2xl">Searching...</div>
+          <LoadingSkeleton type="movieGrid" count={12} />
         </div>
       )}
 
       {filteredAndSortedMovies.length > 0 && (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
           {filteredAndSortedMovies.map((movie, index) => (
             <Link
               to={`/movie/${movie.id}`}
               key={movie.id}
-              className="animate-scale-in"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="group animate-scale-in"
+              style={{ animationDelay: `${index * 30}ms` }}
+              onClick={() => handleMovieClick(movie.id)}
             >
               <div className={`
                 rounded-xl overflow-hidden shadow-lg
                 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}
-                transform hover:scale-105 transition-all duration-300
+                transform hover:scale-105 active:scale-95 transition-all duration-300
                 hover:shadow-2xl
               `}>
-                {movie.poster_path ? (
-                  <img
-                    src={imageUrls.poster(movie.poster_path)}
-                    alt={movie.title}
-                    className="w-full h-auto aspect-[2/3] object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full aspect-[2/3] bg-gray-700 flex items-center justify-center">
-                    <span className="text-gray-400">No image</span>
-                  </div>
-                )}
-                <div className="p-3 sm:p-4">
-                  <h3 className="font-bold text-base sm:text-lg truncate">{movie.title}</h3>
+                <div className="aspect-[2/3] relative overflow-hidden">
+                  {movie.poster_path ? (
+                    <img
+                      src={imageUrls.poster(movie.poster_path)}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">No Image</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 sm:p-3 md:p-4">
+                  <h3 className="font-bold text-sm sm:text-base md:text-lg truncate">{movie.title}</h3>
                   <div className="flex items-center mt-1 sm:mt-2">
-                    <span className="text-yellow-400">★</span>
-                    <span className="ml-1 text-sm sm:text-base">{movie.vote_average.toFixed(1)}</span>
+                    <span className="text-yellow-400 text-sm sm:text-base">★</span>
+                    <span className="ml-1 text-xs sm:text-sm">{movie.vote_average.toFixed(1)}</span>
                   </div>
-                  <p className="mt-2 text-xs sm:text-sm opacity-75 line-clamp-2">
-                    {movie.overview}
-                  </p>
                 </div>
               </div>
             </Link>

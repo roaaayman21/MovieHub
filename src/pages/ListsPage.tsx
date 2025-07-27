@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom'
 import { getMovieDetails, imageUrls } from '../services/tmdb'
 import { useMovieListsStore } from '../store/movieListsStore'
 import { useThemeStore } from '../store/themeStore'
+import { useMovieDataStore } from '../store/movieDataStore'
 import MovieFilters from '../components/MovieFilters'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 
 function ListsPage() {
   const [activeTab, setActiveTab] = useState<'favorites' | 'watchlist'>('favorites')
@@ -13,6 +15,7 @@ function ListsPage() {
   const [selectedGenres, setSelectedGenres] = useState<number[]>([])
   const { favorites, watchlist, removeFavorite, removeFromWatchlist } = useMovieListsStore()
   const { isDarkMode } = useThemeStore()
+  const { addToRecentlyViewed } = useMovieDataStore()
 
   const { data: favoriteMovies } = useQuery({
     queryKey: ['favorites', favorites],
@@ -75,6 +78,21 @@ function ListsPage() {
     )
   }
 
+  const handleMovieClick = (movieId: number) => {
+    addToRecentlyViewed(movieId)
+  }
+
+  const isLoading = (activeTab === 'favorites' && !favoriteMovies && favorites.length > 0) ||
+                   (activeTab === 'watchlist' && !watchlistMovies && watchlist.length > 0)
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <LoadingSkeleton type="movieGrid" count={8} />
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Modern Tab Design */}
@@ -120,52 +138,70 @@ function ListsPage() {
         isDarkMode={isDarkMode}
       />
 
-      {/* Modern Grid Layout */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-8">
-        {filteredAndSortedMovies.map((movie) => (
-          <div key={movie.id} className="group relative rounded-2xl overflow-hidden">
+      {/* Modern Grid Layout - Search Page Style with Fixed Card Sizes */}
+      <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-6 mt-8">
+        {filteredAndSortedMovies.map((movie, index) => (
+          <div key={movie.id} className="group relative animate-scale-in w-[160px] sm:w-[180px] md:w-[200px] lg:w-[220px]" style={{ animationDelay: `${index * 30}ms` }}>
             <Link
               to={`/movie/${movie.id}`}
               className="block"
+              onClick={() => handleMovieClick(movie.id)}
             >
-              <div className="aspect-[2/3] w-full">
-                <img
-                  src={imageUrls.poster(movie.poster_path)}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="text-white font-medium text-lg truncate">
-                      {movie.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-yellow-400 text-sm">★</span>
-                      <span className="text-white/90 text-sm">
-                        {movie.vote_average.toFixed(1)}
-                      </span>
+              <div className={`
+                rounded-xl overflow-hidden shadow-lg
+                ${isDarkMode ? 'bg-gray-800' : 'bg-white'}
+                transform hover:scale-105 active:scale-95 transition-all duration-300
+                hover:shadow-2xl relative
+              `}>
+
+
+                <div className="aspect-[2/3] relative overflow-hidden">
+                  {movie.poster_path ? (
+                    <img
+                      src={imageUrls.poster(movie.poster_path)}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">No Image</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 sm:p-3 md:p-4">
+                  <h3 className="font-bold text-sm sm:text-base md:text-lg truncate">{movie.title}</h3>
+                  <div className="flex items-center justify-between mt-1 sm:mt-2">
+                    <div className="flex items-center">
+                      <span className="text-yellow-400 text-sm sm:text-base">★</span>
+                      <span className="ml-1 text-xs sm:text-sm">{movie.vote_average.toFixed(1)}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
                     </div>
                   </div>
                 </div>
               </div>
             </Link>
-            {/* Delete Button */}
+
+            {/* Delete Button - Always visible on mobile, hover on desktop */}
             <button
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
                 if (activeTab === 'favorites') {
                   removeFavorite(movie.id)
                 } else {
                   removeFromWatchlist(movie.id)
                 }
               }}
-              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-1.5 rounded-full sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-lg backdrop-blur-sm z-20"
               aria-label="Remove from list"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
+                className="h-3 w-3 sm:h-4 sm:w-4"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >

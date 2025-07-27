@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { getMovieDetails, imageUrls, getSimilarMovies } from '../services/tmdb'
 import { useThemeStore } from '../store/themeStore'
 import { useMovieListsStore } from '../store/movieListsStore'
+import { useMovieDataStore } from '../store/movieDataStore'
+import { useScrollToTopImmediate } from '../hooks/useScrollToTop'
 import MovieSlider from '../components/MovieSlider'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 // Add type definition for movie
@@ -119,20 +121,44 @@ function MovieDetailsPage() {
   const { movieId } = useParams<{ movieId: string }>()
   const { isDarkMode } = useThemeStore()
   const { isFavorite, isInWatchlist, toggleFavorite, toggleWatchlist } = useMovieListsStore()
+  const {
+    addToRecentlyViewed,
+    updateGenrePreference,
+    incrementMoviesViewed
+  } = useMovieDataStore()
   const [selectedActor, setSelectedActor] = useState<{ id: number; name: string } | null>(null)
   const [showTrailer, setShowTrailer] = useState(false)
 
+  // Scroll to top when movieId changes
+  useScrollToTopImmediate(movieId)
+
+  // Use simple React Query hooks
   const { data: movie, isLoading } = useQuery<MovieDetailsResponse>({
     queryKey: ['movie', movieId],
     queryFn: () => getMovieDetails(movieId!),
     enabled: !!movieId,
+    staleTime: 1000 * 60 * 30,
   })
 
   const { data: similarMovies } = useQuery({
     queryKey: ['similar', movieId],
     queryFn: () => getSimilarMovies(movieId!),
     enabled: !!movieId,
+    staleTime: 1000 * 60 * 20,
   })
+
+  // Track movie view and update analytics
+  useEffect(() => {
+    if (movie && movieId) {
+      addToRecentlyViewed(parseInt(movieId))
+      incrementMoviesViewed()
+
+      // Update genre preferences
+      movie.genres.forEach(genre => {
+        updateGenrePreference(genre.id)
+      })
+    }
+  }, [movie, movieId, addToRecentlyViewed, incrementMoviesViewed, updateGenrePreference])
 
   // Add null check
   if (!movie || isLoading) {
@@ -151,21 +177,67 @@ function MovieDetailsPage() {
   return (
     <div>
       {/* Hero Section with Backdrop */}
-      <div className="relative min-h-[40vh] sm:min-h-[60vh] flex items-center">
-        <div 
+      <div className="relative min-h-[50vh] sm:min-h-[60vh] flex items-center">
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ 
+          style={{
             backgroundImage: `url(${imageUrls.backdrop(movie.backdrop_path)})`,
             backgroundPosition: 'center 20%'
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/30 sm:bg-gradient-to-r sm:from-black/90 sm:via-black/60 sm:to-transparent" />
         </div>
-        
-        <div className="relative container mx-auto px-4 py-8 sm:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-start md:items-center">
-            {/* Poster */}
-            <div className="md:col-span-4 lg:col-span-3 animate-scale-in">
+
+        <div className="relative container mx-auto px-4 py-6 sm:py-16">
+          <div className="flex flex-col md:grid md:grid-cols-12 gap-4 sm:gap-6 md:gap-8 items-center md:items-start">
+            {/* Mobile Layout: Poster and Info side by side */}
+            <div className="flex md:hidden w-full gap-4 items-start">
+              {/* Mobile Poster */}
+              <div className="flex-shrink-0 w-32 sm:w-40 animate-scale-in">
+                <img
+                  src={imageUrls.poster(movie.poster_path)}
+                  alt={movie.title}
+                  className="w-full rounded-xl shadow-2xl"
+                />
+              </div>
+
+              {/* Mobile Info */}
+              <div className="flex-1 space-y-3 animate-slide-up">
+                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                  {movie.title}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center bg-yellow-400 rounded-full px-3 py-1.5">
+                    <span className="text-black text-lg">★</span>
+                    <span className="ml-1 text-base font-bold text-black">
+                      {movie.vote_average.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="text-white/90 text-sm">
+                    {movie.release_date.split('-')[0]}
+                  </div>
+                  <div className="text-white/90 text-sm">
+                    {movie.runtime} min
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {movie.genres.slice(0, 3).map((genre) => (
+                    <span
+                      key={genre.id}
+                      className="px-2 py-1 rounded-md text-xs font-medium bg-white/20 text-white"
+                    >
+                      {genre.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            {/* Desktop Poster */}
+            <div className="hidden md:block md:col-span-4 lg:col-span-3 animate-scale-in">
               <img
                 src={imageUrls.poster(movie.poster_path)}
                 alt={movie.title}
@@ -173,12 +245,12 @@ function MovieDetailsPage() {
               />
             </div>
 
-            {/* Movie Info */}
-            <div className="md:col-span-8 lg:col-span-9 space-y-4 sm:space-y-6 animate-slide-up">
+            {/* Desktop Movie Info */}
+            <div className="hidden md:block md:col-span-8 lg:col-span-9 space-y-4 sm:space-y-6 animate-slide-up">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
                 {movie.title}
               </h1>
-              
+
               <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <div className="flex items-center bg-yellow-400 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
                   <span className="text-black text-xl sm:text-2xl">★</span>
@@ -197,9 +269,9 @@ function MovieDetailsPage() {
                     key={genre.id}
                     className={`
                       px-4 py-2 rounded-lg text-sm font-medium
-                      transition-all duration-300 
-                      ${isDarkMode 
-                        ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                      transition-all duration-300
+                      ${isDarkMode
+                        ? 'bg-gray-800 text-white hover:bg-gray-700'
                         : 'bg-white text-gray-800 hover:bg-gray-100'
                       }
                       border-2 border-transparent hover:border-blue-500
@@ -222,6 +294,7 @@ function MovieDetailsPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={() => toggleFavorite(movie.id)}
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
@@ -233,6 +306,7 @@ function MovieDetailsPage() {
                   {isFavorite(movie.id) ? '❤️' : '🤍'} Favorite
                 </button>
                 <button
+                  type="button"
                   onClick={() => toggleWatchlist(movie.id)}
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
@@ -249,6 +323,48 @@ function MovieDetailsPage() {
         </div>
       </div>
 
+      {/* Mobile Overview Section */}
+      <div className={`md:hidden ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} py-6`}>
+        <div className="container mx-auto px-4">
+          <h2 className="text-xl font-bold mb-3">Overview</h2>
+          <p className="text-sm leading-relaxed opacity-80 mb-4">
+            {movie.overview}
+          </p>
+
+          {/* Mobile Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => toggleFavorite(movie.id)}
+              className={`
+                flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium
+                ${isFavorite(movie.id)
+                  ? 'bg-pink-600 hover:bg-pink-700 text-white'
+                  : isDarkMode
+                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                    : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'}
+              `}
+            >
+              {isFavorite(movie.id) ? '❤️' : '🤍'} Favorite
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleWatchlist(movie.id)}
+              className={`
+                flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium
+                ${isInWatchlist(movie.id)
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : isDarkMode
+                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                    : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'}
+              `}
+            >
+              {isInWatchlist(movie.id) ? '✓' : '+'} Watchlist
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Content Sections */}
       <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} py-8 sm:py-16`}>
         <div className="container mx-auto px-4 space-y-8 sm:space-y-16">
@@ -259,6 +375,7 @@ function MovieDetailsPage() {
               <div className="aspect-w-16 aspect-h-9 rounded-2xl overflow-hidden shadow-2xl">
                 <iframe
                   src={`https://www.youtube.com/embed/${trailer.key}`}
+                  title={`${movie.title} Trailer`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="w-full h-full"
@@ -320,6 +437,7 @@ function MovieDetailsPage() {
           <div className="relative w-full max-w-5xl">
             {/* Close button */}
             <button
+              type="button"
               onClick={() => setShowTrailer(false)}
               className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300"
             >
@@ -333,6 +451,7 @@ function MovieDetailsPage() {
               <iframe
                 className="absolute inset-0 w-full h-full rounded-xl"
                 src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1`}
+                title={`${movie.title} Trailer (Fullscreen)`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />

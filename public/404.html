@@ -14,7 +14,7 @@
       gtag('config', 'G-MPCBJDMQZV');
     </script>
 
-    <!-- Remove any existing favicon link and add these -->
+    <!-- Favicon links -->
     <link rel="icon" type="image/svg+xml" href="/MovieHub/icons/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/MovieHub/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/MovieHub/icons/favicon-16x16.png">
@@ -24,23 +24,34 @@
 
     <title>Movie Explorer</title>
 
-    <!-- GitHub Pages SPA redirect handling -->
     <script>
-      // Check if we're being loaded as a result of a redirect from 404.html
-      // This ensures that direct navigation to any route works correctly
-      (function() {
-        const redirectData = sessionStorage.getItem('spa-redirect');
-        if (redirectData) {
-          // Don't remove it here - let React Router handle it
-          console.log('SPA redirect detected:', redirectData);
-        }
-      })();
+      // GitHub Pages SPA redirect handling
+      // This script handles direct navigation to any route in the SPA
+
+      // Get the current path that was requested
+      const currentPath = location.pathname;
+      const search = location.search;
+      const hash = location.hash;
+
+      // Check if this is a route within our app (starts with /MovieHub/)
+      if (currentPath.startsWith('/MovieHub/') && currentPath !== '/MovieHub/') {
+        // Extract the route part (everything after /MovieHub)
+        const route = currentPath.substring('/MovieHub'.length);
+
+        // Store the full route information for the app to handle
+        sessionStorage.setItem('spa-redirect', JSON.stringify({
+          pathname: route,
+          search: search,
+          hash: hash
+        }));
+      }
+
+      // Always redirect to the base URL so React Router can take over
+      location.replace('/MovieHub/');
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/MovieHub/src/main.tsx"></script>
   </body>
 </html>
-
-
