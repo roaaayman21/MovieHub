@@ -23,7 +23,20 @@
     <meta name="theme-color" content="#1E293B">
 
     <title>Movie Explorer</title>
-    <script type="module" crossorigin src="/MovieHub/assets/index-MG7EvAhs.js"></script>
+
+    <!-- GitHub Pages SPA redirect handling -->
+    <script>
+      // Check if we're being loaded as a result of a redirect from 404.html
+      // This ensures that direct navigation to any route works correctly
+      (function() {
+        const redirectData = sessionStorage.getItem('spa-redirect');
+        if (redirectData) {
+          // Don't remove it here - let React Router handle it
+          console.log('SPA redirect detected:', redirectData);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/MovieHub/assets/index-8teFUfcU.js"></script>
     <link rel="stylesheet" crossorigin href="/MovieHub/assets/index-CNIQLV3W.css">
   </head>
   <body>

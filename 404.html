@@ -26,11 +26,27 @@
 
     <script>
       // GitHub Pages SPA redirect handling
-      // Store the current path and redirect to index
-      const path = location.pathname + location.search + location.hash;
-      sessionStorage.setItem('redirectPath', path);
+      // This script handles direct navigation to any route in the SPA
 
-      // Redirect to the base URL
+      // Get the current path that was requested
+      const currentPath = location.pathname;
+      const search = location.search;
+      const hash = location.hash;
+
+      // Check if this is a route within our app (starts with /MovieHub/)
+      if (currentPath.startsWith('/MovieHub/') && currentPath !== '/MovieHub/') {
+        // Extract the route part (everything after /MovieHub)
+        const route = currentPath.substring('/MovieHub'.length);
+
+        // Store the full route information for the app to handle
+        sessionStorage.setItem('spa-redirect', JSON.stringify({
+          pathname: route,
+          search: search,
+          hash: hash
+        }));
+      }
+
+      // Always redirect to the base URL so React Router can take over
       location.replace('/MovieHub/');
     </script>
   </head>
