@@ -25,9 +25,12 @@
     <title>Movie Explorer</title>
 
     <script>
-      // Simple redirect for GitHub Pages SPA
+      // GitHub Pages SPA redirect handling
       // Store the current path and redirect to index
-      sessionStorage.setItem('redirectPath', location.pathname + location.search + location.hash);
+      const path = location.pathname + location.search + location.hash;
+      sessionStorage.setItem('redirectPath', path);
+
+      // Redirect to the base URL
       location.replace('/MovieHub/');
     </script>
   </head>
