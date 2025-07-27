@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useThemeStore } from '../store/themeStore'
 import { useState, useEffect } from 'react'
 import { useScrollToTop } from '../hooks/useScrollToTop'
+import ScrollToTopButton from './ScrollToTopButton'
 
 function Layout() {
   const { isDarkMode, toggleTheme } = useThemeStore()
@@ -187,6 +188,9 @@ function Layout() {
           <p>© 2025 MovieDB By Roaa Ayman</p>
         </div>
       </footer>
+
+      {/* Floating Scroll to Top Button */}
+      <ScrollToTopButton />
     </div>
   )
 }

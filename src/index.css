@@ -6,7 +6,8 @@
   color-scheme: dark;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -43,12 +44,16 @@ body.menu-open {
   }
 
   /* Better touch feedback */
-  button, .nav-link, a {
+  button,
+  .nav-link,
+  a {
     -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
   }
 
   /* Prevent zoom on input focus */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px;
   }
 
@@ -121,11 +126,12 @@ select:focus-visible {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: .5;
+    opacity: 0.5;
   }
 }
 
@@ -146,6 +152,37 @@ select:focus-visible {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.7);
+}
+
+/* Scroll to top button animations */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+}
+
+.scroll-to-top-enter {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+.scroll-to-top-exit {
+  animation: slideOutDown 0.3s ease-in forwards;
 }
 
 /* Text selection */
@@ -177,14 +214,16 @@ select:focus-visible {
   .hero-container {
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height */
-    min-height: calc(100vh + env(safe-area-inset-top)); /* Account for notches */
+    min-height: calc(
+      100vh + env(safe-area-inset-top)
+    ); /* Account for notches */
     width: 100vw;
     position: relative;
   }
 
   /* Force background to cover entire viewport */
   .hero-container::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -227,5 +266,3 @@ select:focus-visible {
     background-position: center center !important;
   }
 }
-
-
